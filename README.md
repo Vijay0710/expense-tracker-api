@@ -26,19 +26,16 @@ git clone https://github.com/Viay0710/expense-tracker.git
 
 #### Creating Virtual Environment
 It is advised to create a virtual environment before proceeding with installation of dependencies
-[label /expense-tracker-api]
 ```bash
 virtualenv venv
 ```
 
 #### Activating Virtual Environment
 On Windows
-[label /expense-tracker-api]
 ```bash
 .\venv\Scripts\activate
 ```
 On Mac
-[label /expense-tracker-api]
 ```bash
 source venv/bin/activate
 ```
