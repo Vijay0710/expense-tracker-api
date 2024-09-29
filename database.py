@@ -1,13 +1,9 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
+import settings
 
-DATABASE_NAME = 'ExpenseTrackerDatabase'
-PASSWORD = 'vijay*710'
-DOMAIN_NAME = 'localhost'
-DATABASE_URL = 'postgresql://postgres'
-
-SQLALCHEMY_DATABASE_URL = f"{DATABASE_URL}:{PASSWORD}@{DOMAIN_NAME}/{DATABASE_NAME}"
+SQLALCHEMY_DATABASE_URL = f"{settings.DATABASE_URL}:{settings.PASSWORD}@{settings.DOMAIN_NAME}/{settings.DATABASE_NAME}"
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL

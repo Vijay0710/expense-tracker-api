@@ -13,10 +13,11 @@ class User(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     full_name = Column(String)
     email_id = Column(String, unique=True, index=True)
+    hashed_password = Column(String)
     phone_number = Column(String, unique=True, index=True)
     address_id = Column(UUID(as_uuid=True), ForeignKey('address.id'), default=uuid.uuid4)
 
-    address = relationship('Address', back_populates='user')
+    address = relationship('Address', back_populates='user_address')
 
 
 class Address(Base):
@@ -24,10 +25,10 @@ class Address(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     address_1 = Column(String)
-    address_2 = Column(String)
+    address_2 = Column(String, default=None)
     city = Column(String)
     state = Column(String)
     country = Column(String)
     postal_code = Column(String)
 
-    user_address = relationship('Users', back_populates='address')
+    user_address = relationship('User', back_populates='address')
