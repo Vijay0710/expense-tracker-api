@@ -15,7 +15,7 @@ class User(Base):
     email_id = Column(String, unique=True, index=True)
     hashed_password = Column(String)
     phone_number = Column(String, unique=True, index=True)
-    address_id = Column(UUID(as_uuid=True), ForeignKey('address.id'), default=uuid.uuid4)
+    address_id = Column(UUID(as_uuid=True), ForeignKey('address.id'), default=None)
 
     address = relationship('Address', back_populates='user_address')
 

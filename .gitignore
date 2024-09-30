@@ -1,2 +1,3 @@
 expense-tracker-env/
 __pycache__/
+.venv/
