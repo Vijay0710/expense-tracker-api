@@ -1,4 +1,6 @@
-from datetime import datetime, timedelta
+import sys
+sys.path.append("../..")
+from datetime import datetime, timedelta, timezone
 from fastapi import Depends, HTTPException, status, APIRouter
 from pydantic import BaseModel
 from typing import Optional
@@ -6,10 +8,11 @@ import models
 from passlib.hash import bcrypt
 from sqlalchemy.orm import Session
 from database import SessionLocal, engine
-from fastapi.security import OAuth2PasswordRequestFormStrict, OAuth2PasswordBearer
-from jose import jwt, JWTError
-from sqlalchemy.orm import Session
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestFormStrict
+from jose import ExpiredSignatureError, jwt, JWTError
+from exceptions import auth_exception
 import uuid
+import settings
 
 router = APIRouter(
     prefix="/auth",
@@ -22,6 +25,7 @@ router = APIRouter(
 )
 
 models.Base.metadata.create_all(bind=engine)
+oauth2_bearer = OAuth2PasswordBearer(tokenUrl="auth/token")
 
 class AddressModel(BaseModel):
     address_1: str
@@ -31,13 +35,19 @@ class AddressModel(BaseModel):
     country: str
     postal_code: str
 
-
 class UserModel(BaseModel):
-    fullName: str
-    email: str
+    full_name: str
+    email_id: str
     password: str
     phone_number: str
     address: Optional[AddressModel] = None
+
+
+class UserResponseModel(BaseModel):
+    id: uuid.UUID
+    full_name: str
+    email_id: str
+    phone_number: str
 
 
 def get_hashed_password(password: str):
@@ -59,7 +69,6 @@ def verify_user(username: str, password: str, db: Session = Depends(get_db)):
     user = db.query(models.User)\
                 .filter(models.User.email_id == username)\
                 .first()
-    
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="The username or password is incorrect")
     
@@ -68,12 +77,68 @@ def verify_user(username: str, password: str, db: Session = Depends(get_db)):
     
     return user
 
+def create_access_token(username: str, user_id: uuid, expires_delta: Optional[timedelta] = None):
+    encode = {
+        "username" : username,
+        "uuid" : str(user_id)
+    }
 
-#User can register with or without address data
+    if expires_delta:
+        expires = datetime.now(timezone.utc) + expires_delta
+    else:
+        expires = datetime.now(timezone.utc) + timedelta(minutes=1)
+    
+    encode.update({ "exp" : expires })
+
+    return jwt.encode(encode, key=settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+# Token endpoint to get encypted information of the user
+@router.post("/token")
+async def login_user_and_create_access_token(form_data: OAuth2PasswordRequestFormStrict = Depends(), db: Session = Depends(get_db)):
+    user = verify_user(form_data.username, form_data.password, db=db)
+
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="The username or password is invalid")
+    
+    token  = create_access_token(
+        username=form_data.username, 
+        user_id=user.id, 
+        expires_delta=timedelta(minutes=1)
+    )
+
+    return {
+        "access_token" : token,
+        "token_type" : "Bearer"
+    }
+
+
+def get_current_user(token: str = Depends(oauth2_bearer)):
+    try:
+        payload = jwt.decode(token, key=settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        username = payload.get("username")
+        user_id = payload.get("uuid")
+        if username is not None and user_id is not None:
+            return {
+                "username" : username,
+                "user_id" : user_id
+            }
+        raise auth_exception.current_user_exception()
+    
+    except ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, 
+            detail="Oops your Authorization is Expired. Please try logging in again"
+        )
+   
+    except JWTError:
+        raise auth_exception.current_user_exception()
+
+
+# User can register with or without address data
 @router.post("/register")
 def register_user(user: UserModel, db: Session = Depends(get_db)):
     user_data = db.query(models.User)\
-                    .filter(models.User.email_id == user.email)\
+                    .filter(models.User.email_id == user.email_id)\
                     .first()
     if user_data:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User already exists")
@@ -81,9 +146,9 @@ def register_user(user: UserModel, db: Session = Depends(get_db)):
     create_user_model = models.User()
     
     create_user_model.id = uuid.uuid4()
-    create_user_model.email_id = user.email
+    create_user_model.email_id = user.email_id
     create_user_model.hashed_password = get_hashed_password(user.password)
-    create_user_model.full_name = user.fullName
+    create_user_model.full_name = user.full_name
     create_user_model.phone_number = user.phone_number
 
     if user.address != None:
@@ -102,5 +167,6 @@ def register_user(user: UserModel, db: Session = Depends(get_db)):
     db.commit()
     
     return {
+        "status" : status.HTTP_201_CREATED,
         "detail" : "User registered successfully"
     }
