@@ -7,6 +7,7 @@ from typing import Optional
 import models
 from passlib.hash import bcrypt
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from database import SessionLocal, engine
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestFormStrict
 from jose import ExpiredSignatureError, jwt, JWTError
@@ -42,6 +43,8 @@ class UserModel(BaseModel):
     phone_number: str
     address: Optional[AddressModel] = None
 
+class ForgetPasswordRequest(BaseModel):
+    email: str
 
 class UserResponseModel(BaseModel):
     id: uuid.UUID
@@ -164,7 +167,10 @@ def register_user(user: UserModel, db: Session = Depends(get_db)):
         db.add(create_address_model)
     
     db.add(create_user_model)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User already exists")
     
     return {
         "status" : status.HTTP_201_CREATED,

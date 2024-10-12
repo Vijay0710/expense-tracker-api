@@ -2,10 +2,23 @@ import uuid
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from database import Base
-from sqlalchemy import Boolean, Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Date, String, ForeignKey, BigInteger, DateTime, Enum
+import utils
+from enum import Enum as pyEnum
 import sys
 sys.path.append("..")
 
+
+class AccountType(pyEnum):
+    SAVINGS_ACCOUNT = 1
+    CHECKING_ACCOUNT = 2
+    BUSINESS_ACCOUNT = 3
+    JOINT_ACCOUNT = 4
+    CREDIT_ACCOUNT = 5
+
+class CurrencyType(pyEnum):
+    INR = 1
+    USD = 2
 
 class User(Base):
     __tablename__ = "users"
@@ -18,6 +31,9 @@ class User(Base):
     address_id = Column(UUID(as_uuid=True), ForeignKey('address.id'), default=None)
 
     address = relationship('Address', back_populates='user_address')
+    transactions = relationship('Transactions', back_populates='user_transaction_fk')
+    accounts = relationship('Accounts', back_populates='user_account_fk')
+    credit_account_fk = relationship('CreditAccount',back_populates='user_credit_account_fk')
 
 
 class Address(Base):
@@ -32,3 +48,57 @@ class Address(Base):
     postal_code = Column(String)
 
     user_address = relationship('User', back_populates='address')
+
+
+class Transactions(Base):
+    __tablename__ = 'transactions'
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4())
+    transaction_amount = Column(BigInteger)
+    transaction_date = Column(Date)
+    category = Column(String, default="Other")
+    transaction_description = Column(String, default=None, nullable=True)
+    created_at = Column(DateTime, default=utils.getCurrentTimeStamp())
+    updated_at = Column(DateTime, default=None, nullable=True)
+    transaction_currency_type = Column(String, default="INR")
+    is_recurring = Column(String, default=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'))
+
+    user_transaction_fk = relationship('User', back_populates='transactions')
+
+
+class Accounts(Base):
+    __tablename__ = 'accounts'
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4())
+    account_type = Column(Enum(AccountType), nullable=False)
+    bank_name = Column(String, nullable=False)
+    account_number = Column(BigInteger, nullable=False)
+    account_balance = Column(BigInteger ,default=0)
+    currency = Column(Enum(CurrencyType), default=CurrencyType.INR)
+    created_at = Column(DateTime, default=utils.getCurrentTimeStamp())
+    updated_at = Column(DateTime, default=None, nullable=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'))
+
+    user_account_fk = relationship('User', back_populates='accounts')
+    credit_account_fk = relationship('CreditAccount', back_populates='account_credit_account_fk')
+    
+
+class CreditAccount(Base):
+    __tablename__ = 'credit_account'
+
+    credit_account_id = Column(UUID(as_uuid=True), ForeignKey('accounts.id'),primary_key= True, default=None)
+    credit_card_limit = Column(String, nullable=False)
+    credit_card_due_date = Column(Date, nullable=False)
+    credit_card_outstanding = Column(BigInteger, nullable=False, default=0)
+    billing_cycle = Column(String, nullable=False)
+    total_reward_points = Column(String, nullable=False)
+    user_id = Column(UUID(as_uuid=True),ForeignKey('users.id'),nullable=False)
+    
+    account_credit_account_fk = relationship('Accounts', back_populates='credit_account_fk')
+    user_credit_account_fk = relationship('User',back_populates='credit_account_fk')
+
+
+    
+
+
