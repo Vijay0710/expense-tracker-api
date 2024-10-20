@@ -2,7 +2,7 @@ import uuid
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from database import Base
-from sqlalchemy import Column, Date, String, ForeignKey, BigInteger, DateTime, Enum
+from sqlalchemy import Boolean, Column, Date, String, ForeignKey, BigInteger, DateTime, Enum
 import utils
 from enum import Enum as pyEnum
 import sys
@@ -60,11 +60,13 @@ class Transactions(Base):
     transaction_description = Column(String, default=None, nullable=True)
     created_at = Column(DateTime, default=utils.getCurrentTimeStamp())
     updated_at = Column(DateTime, default=None, nullable=True)
-    transaction_currency_type = Column(String, default="INR")
-    is_recurring = Column(String, default=False)
+    transaction_currency_type = Column(Enum(CurrencyType), default="INR")
+    is_recurring = Column(Boolean, default=False)
     user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'))
+    account_id = Column(UUID(as_uuid=True),ForeignKey('accounts.id'))
 
     user_transaction_fk = relationship('User', back_populates='transactions')
+    transaction_account_fk = relationship('Accounts',back_populates='account_transaction_fk')
 
 
 class Accounts(Base):
@@ -80,6 +82,7 @@ class Accounts(Base):
     updated_at = Column(DateTime, default=None, nullable=True)
     user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'))
 
+    account_transaction_fk = relationship('Transactions', back_populates='transaction_account_fk')
     user_account_fk = relationship('User', back_populates='accounts')
     credit_account_fk = relationship('CreditAccount', back_populates='account_credit_account_fk')
     

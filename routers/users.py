@@ -5,8 +5,10 @@ import models
 from database import SessionLocal, engine
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from responses import user_response
+from responses import Response
 from routers.auth import get_current_user
+from exceptions import network
+from sqlalchemy.exc import OperationalError
 
 router = APIRouter(
     prefix="/users",
@@ -25,12 +27,17 @@ def get_db():
     finally:
         db.close()
 
-@router.get("/user", response_model = user_response.UserResponseModel)
+@router.get("/user", response_model = Response.UserResponseModel)
 async def get_my_data(current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
-    user = db.query(models.User)\
-            .filter(models.User.email_id == current_user.get("username"))\
-            .first()
+    try:
+        user = db.query(models.User)\
+                .filter(models.User.email_id == current_user.get("username"))\
+                .first()
+        
+        return user
+
+    except OperationalError:
+        raise network.network_exception()
     
-    return user
 
 
