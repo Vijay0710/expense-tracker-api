@@ -14,7 +14,8 @@ from responses import Response
 from routers.auth import get_current_user
 import datetime
 from sqlalchemy.exc import OperationalError
-from exceptions import network
+from exceptions import network, accounts as exception_accounts
+from responses.Response import AccountInfoResponseModel
 
 
 router = APIRouter( 
@@ -100,6 +101,24 @@ async def create_account(account: AccountInformation, db: Session = Depends(get_
     
     except OperationalError:
         network.network_exception()
-    
-        
 
+@router.post("/info", response_model=list[AccountInfoResponseModel])    
+async def get_accounts(db: Session = Depends(get_db), current_user:  dict = Depends(get_current_user)):
+    try:
+        userId = current_user.get("user_id")
+
+        user_data = db.query(models.User)\
+                    .filter(models.User.id == userId)\
+                    .first()
+
+        if user_data:
+            accounts = db.query(models.Accounts)\
+                        .filter(models.Accounts.user_id == userId)\
+                        .all()
+            return accounts
+        
+        else:
+            raise exception_accounts.not_found_exception()
+    
+    except OperationalError:
+        network.network_exception()

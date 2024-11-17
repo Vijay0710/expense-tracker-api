@@ -10,15 +10,15 @@ sys.path.append("..")
 
 
 class AccountType(pyEnum):
-    SAVINGS_ACCOUNT = 1
-    CHECKING_ACCOUNT = 2
-    BUSINESS_ACCOUNT = 3
-    JOINT_ACCOUNT = 4
-    CREDIT_ACCOUNT = 5
+    SAVINGS_ACCOUNT = "SAVINGS_ACCOUNT"
+    CHECKING_ACCOUNT = "CHECKING_ACCOUNT"
+    BUSINESS_ACCOUNT = "BUSINESS_ACCOUNT"
+    JOINT_ACCOUNT = "JOINT_ACCOUNT"
+    CREDIT_ACCOUNT = "CREDIT_ACCOUNT"
 
 class CurrencyType(pyEnum):
-    INR = 1
-    USD = 2
+    INR = "INR"
+    USD = "USD"
 
 class User(Base):
     __tablename__ = "users"

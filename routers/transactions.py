@@ -90,16 +90,21 @@ def get_transactions_info_from_account_id_for_current_user(account_id: uuid.UUID
         .all()
 
 @router.post("/", response_model=list[TransactionResponseModel])
-async def get_transactions(account_id: uuid.UUID,db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+async def get_transactions(account_id: uuid.UUID = None, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
     try:
         user_data = get_user_data(current_user, db)
 
-        if user_data:
-            transactions = get_transactions_info_from_account_id_for_current_user(
-                account_id=account_id,
-                current_user=current_user,
-                db=db
-            )
+        if user_data: 
+            if account_id:
+                transactions = get_transactions_info_from_account_id_for_current_user(
+                    account_id=account_id,
+                    current_user=current_user,
+                    db=db
+                )
+            else:
+                transactions = db.query(models.Transactions)\
+                    .filter(models.Transactions.user_id == user_data.id)\
+                    .all()
             return transactions
         else:
             user.not_found_exception()

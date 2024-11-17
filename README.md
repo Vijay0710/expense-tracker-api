@@ -50,3 +50,18 @@ pip install -r requirements.txt
 ```bash
 fastapi dev main.py
 ```
+
+### 3. Configure settings
+
+Create a folder named `templates` in the project directory and and create a file named `settings.py`
+
+```
+DATABASE_NAME = 'ExpenseTrackerDatabase'
+PASSWORD = 'TEST' (USE THE PASSWORD TO YOUR DATABASE)
+DOMAIN_NAME = 'localhost' (USE THE DOMAIN NAME IF UR DATABASE IS HOSTED)
+DATABASE_URL = 'postgresql://postgres'
+PORT = 'PORT NO IF ANY'
+
+ALGORITHM = "CONFIGURE THE DESIRED ALGO" (DEFAULT THIS PROJECT USES IS HS256)
+SECRET_KEY = "ANY KEY HERE"
+```
