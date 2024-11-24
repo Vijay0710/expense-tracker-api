@@ -2,7 +2,7 @@ import uuid
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from database import Base
-from sqlalchemy import Boolean, Column, Date, String, ForeignKey, BigInteger, DateTime, Enum
+from sqlalchemy import Boolean, Column, Date, String, ForeignKey, BigInteger, DateTime, Enum, Double
 import utils
 from enum import Enum as pyEnum
 import sys
@@ -16,9 +16,11 @@ class AccountType(pyEnum):
     JOINT_ACCOUNT = "JOINT_ACCOUNT"
     CREDIT_ACCOUNT = "CREDIT_ACCOUNT"
 
+
 class CurrencyType(pyEnum):
     INR = "INR"
     USD = "USD"
+
 
 class User(Base):
     __tablename__ = "users"
@@ -63,7 +65,7 @@ class Transactions(Base):
     transaction_currency_type = Column(Enum(CurrencyType), default="INR")
     is_recurring = Column(Boolean, default=False)
     user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'))
-    account_id = Column(UUID(as_uuid=True),ForeignKey('accounts.id'))
+    account_id = Column(UUID(as_uuid=True), ForeignKey('accounts.id'))
 
     user_transaction_fk = relationship('User', back_populates='transactions')
     transaction_account_fk = relationship('Accounts',back_populates='account_transaction_fk')
@@ -76,7 +78,7 @@ class Accounts(Base):
     account_type = Column(Enum(AccountType), nullable=False)
     bank_name = Column(String, nullable=False)
     account_number = Column(BigInteger, nullable=False)
-    account_balance = Column(BigInteger ,default=0)
+    account_balance = Column(Double, default=0)
     currency = Column(Enum(CurrencyType), default=CurrencyType.INR)
     created_at = Column(DateTime, default=utils.getCurrentTimeStamp())
     updated_at = Column(DateTime, default=None, nullable=True)

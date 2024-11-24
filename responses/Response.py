@@ -32,6 +32,7 @@ class AccountInfoResponseModel(BaseModel):
     account_type: AccountType
     bank_name: str
     account_number: int
-    account_balance: int
+    account_balance: float
     currency: CurrencyType
     created_at: datetime.datetime
+    updated_at: Optional[datetime.datetime] = None
