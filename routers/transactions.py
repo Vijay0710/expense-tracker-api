@@ -11,7 +11,7 @@ from database import SessionLocal, engine
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from responses import Response
-from routers.auth import get_current_user
+from routers.auth import decode_jwt_and_get_current_user
 from exceptions import user, accounts as exception_account,transactions
 import datetime
 import uuid
@@ -90,7 +90,7 @@ def get_transactions_info_from_account_id_for_current_user(account_id: uuid.UUID
         .all()
 
 @router.post("/", response_model=list[TransactionResponseModel])
-async def get_transactions(account_id: uuid.UUID = None, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+async def get_transactions(account_id: uuid.UUID = None, db: Session = Depends(get_db), current_user: dict = Depends(decode_jwt_and_get_current_user)):
     try:
         user_data = get_user_data(current_user, db)
 
@@ -114,7 +114,7 @@ async def get_transactions(account_id: uuid.UUID = None, db: Session = Depends(g
     
 
 @router.post("/add")
-async def add_transaction(transaction: Transaction, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+async def add_transaction(transaction: Transaction, db: Session = Depends(get_db), current_user: dict = Depends(decode_jwt_and_get_current_user)):
     try:
         user_data  = get_user_data(current_user, db)
 
@@ -144,7 +144,7 @@ async def add_transaction(transaction: Transaction, db: Session = Depends(get_db
         raise network.network_exception()
 
 @router.patch("/update")
-async def update_transaction(transaction: UpdateTransaction, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+async def update_transaction(transaction: UpdateTransaction, db: Session = Depends(get_db), current_user: dict = Depends(decode_jwt_and_get_current_user)):
     try:
         user_data  = get_user_data(current_user, db)
         accounts = get_accounts_information(current_user, db)
@@ -184,7 +184,7 @@ async def update_transaction(transaction: UpdateTransaction, db: Session = Depen
         raise network.network_exception()
 
 @router.delete("/delete")
-async def delete_transaction(transaction_id: uuid.UUID, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+async def delete_transaction(transaction_id: uuid.UUID, db: Session = Depends(get_db), current_user: dict = Depends(decode_jwt_and_get_current_user)):
     try:    
         user_data  = get_user_data(current_user, db)
 

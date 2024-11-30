@@ -9,7 +9,7 @@ from passlib.hash import bcrypt
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError, OperationalError
 from database import SessionLocal, engine
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestFormStrict
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestFormStrict, OAuth2
 from jose import ExpiredSignatureError, jwt, JWTError
 from exceptions import auth
 import uuid
@@ -85,7 +85,7 @@ def verify_user(username: str, password: str, db: Session = Depends(get_db)):
     except OperationalError:
         raise network.network_exception()
 
-def create_access_token(username: str, user_id: uuid, expires_delta: Optional[timedelta] = None):
+def create_token(username: str, user_id: uuid, expires_delta: Optional[timedelta] = None):
     encode = {
         "username" : username,
         "uuid" : str(user_id)
@@ -109,22 +109,54 @@ async def login_user_and_create_access_token(form_data: OAuth2PasswordRequestFor
         if not user:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="The username or password is invalid")
         
-        token  = create_access_token(
+        token  = create_token(
             username=form_data.username, 
             user_id=user.id, 
             expires_delta=timedelta(minutes=15)
         )
 
+        refresh_token = create_token(
+            username=form_data.username,
+            user_id=user.id,
+            expires_delta=timedelta(days=7)
+        )
+
         return {
             "access_token" : token,
+            "refresh_token": refresh_token,
             "token_type" : "Bearer"
         }
     
     except OperationalError:
         raise network.network_exception()
 
+@router.post("/refresh_token")
+async def refresh_token(refresh_token: str):
+    try:
+        user = decode_jwt_and_get_current_user(token=refresh_token)
 
-def get_current_user(token: str = Depends(oauth2_bearer)):
+        if not user:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
+        
+        access_token  = create_token(
+            username=user["username"], 
+            user_id=user["user_id"], 
+            expires_delta=timedelta(minutes=15)
+        )
+
+        return {
+            "access_token" : access_token,
+            "token_type" : "Bearer"
+        }
+    
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Something went wrong at server end.")
+    
+    except OperationalError:
+        raise network.network_exception()
+
+
+def decode_jwt_and_get_current_user(token: str = Depends(oauth2_bearer)):
     try:
         payload = jwt.decode(token, key=settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         username = payload.get("username")
@@ -141,7 +173,6 @@ def get_current_user(token: str = Depends(oauth2_bearer)):
             status_code=status.HTTP_401_UNAUTHORIZED, 
             detail="Oops your Authorization is Expired. Please try logging in again"
         )
-    
     except OperationalError:
         raise network.network_exception()
     

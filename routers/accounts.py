@@ -2,7 +2,7 @@ from responses.Response import AccountInfoResponseModel
 from exceptions import network, accounts as exception_accounts
 from sqlalchemy.exc import OperationalError
 import datetime
-from routers.auth import get_current_user
+from routers.auth import decode_jwt_and_get_current_user
 from responses import Response
 from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -71,7 +71,7 @@ def get_db():
 
 
 @router.post("/add")
-async def create_account(account: AccountInformation, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+async def create_account(account: AccountInformation, db: Session = Depends(get_db), current_user: dict = Depends(decode_jwt_and_get_current_user)):
     try:
         userId = current_user.get("user_id")
 
@@ -109,7 +109,7 @@ async def create_account(account: AccountInformation, db: Session = Depends(get_
 
 
 @router.post("/info", response_model=list[AccountInfoResponseModel])
-async def get_accounts(db: Session = Depends(get_db), current_user:  dict = Depends(get_current_user)):
+async def get_accounts(db: Session = Depends(get_db), current_user:  dict = Depends(decode_jwt_and_get_current_user)):
     try:
         userId = current_user.get("user_id")
 
@@ -131,7 +131,7 @@ async def get_accounts(db: Session = Depends(get_db), current_user:  dict = Depe
 
 
 @router.patch("/update")
-async def update_account_information(account: UpdateAccountInformation, db: Session = Depends(get_db), current_user:  dict = Depends(get_current_user)):
+async def update_account_information(account: UpdateAccountInformation, db: Session = Depends(get_db), current_user:  dict = Depends(decode_jwt_and_get_current_user)):
     try:
         account_info = utils.get_account_information(account.id, current_user, db)
         credit_account_info = utils.get_credit_account_information(
@@ -167,7 +167,7 @@ async def update_account_information(account: UpdateAccountInformation, db: Sess
         network.network_exception()
 
 @router.delete("/delete", description="This operation will delete all the transactions associated with this account. Kindly use this with caution.")
-async def delete_account_information(account_id: uuid.UUID, db: Session = Depends(get_db), current_user:  dict = Depends(get_current_user)):
+async def delete_account_information(account_id: uuid.UUID, db: Session = Depends(get_db), current_user:  dict = Depends(decode_jwt_and_get_current_user)):
     try:
         account_info = utils.get_account_information(account_id, current_user, db)
 
