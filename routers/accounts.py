@@ -29,11 +29,10 @@ router = APIRouter(
     }
 )
 
-
 class CreditAccountInformation(BaseModel):
-    account_limit: int
-    account_due_date: datetime.date
-    account_current_outstanding: str
+    credit_card_limit: int
+    credit_card_due_date: datetime.date
+    credit_card_outstanding: str
     billing_cycle: str
     total_reward_points: str
 
@@ -47,6 +46,12 @@ class AccountInformation(BaseModel):
     credit_account_information: Optional[CreditAccountInformation] = None
     updated_at: Optional[str] = None
 
+class UpdateCreditAccountInformation(BaseModel):
+    credit_card_limit: Optional[str] = None
+    credit_card_due_date: Optional[datetime.date] = None
+    credit_card_outstanding: Optional[str] = None
+    billing_cycle: Optional[datetime.date] = None
+    total_reward_points: Optional[str] = None
 
 class UpdateAccountInformation(BaseModel):
     id: uuid.UUID
@@ -54,8 +59,8 @@ class UpdateAccountInformation(BaseModel):
     account_number: Optional[str] = None
     account_balance: Optional[float] = None
     account_type: Optional[models.AccountType] = None
+    credit_account_information: Optional[UpdateCreditAccountInformation] = None
     currency: Optional[models.CurrencyType] = None
-
 
 def get_db():
     try:
@@ -75,38 +80,29 @@ async def create_account(account: AccountInformation, db: Session = Depends(get_
             .first()
 
         if user_data:
-            create_account_model = models.Accounts()
+            create_account_model = models.Accounts(
+                id=uuid.uuid4(),
+                **account.model_dump(exclude={"credit_account_information"}),
+                user_id=userId
+            )
 
-            create_account_model.id = uuid.uuid4()
-            create_account_model.account_number = account.account_number
-            create_account_model.account_type = account.account_type
-            create_account_model.account_balance = account.account_balance
-            create_account_model.bank_name = account.bank_name
-            create_account_model.currency = account.currency
-            create_account_model.user_id = user_data.id
-
-            if (account.account_type.value == 5):
-                credit_account = models.CreditAccount()
-                credit_account.credit_account_id = create_account_model.id
-                credit_account.credit_card_limit = account.credit_account_information.account_limit
-                credit_account.credit_card_due_date = account.credit_account_information.account_due_date
-                credit_account.billing_cycle = account.credit_account_information.billing_cycle
-                credit_account.total_reward_points = account.credit_account_information.total_reward_points
-                credit_account.credit_card_outstanding = account.credit_account_information.account_current_outstanding
-                credit_account.user_id = userId
+            if (account.account_type.value == models.AccountType.CREDIT_ACCOUNT.value):
+                credit_account = models.CreditAccount(
+                    credit_account_id=create_account_model.id,
+                    **account.credit_account_information.__dict__,
+                    user_id=userId
+                )
                 db.add(credit_account)
-
+            
+            db.add(create_account_model)
+            db.commit()
+            return {
+                'status': status.HTTP_201_CREATED,
+                'detail': 'Account Added Successfully'
+            }
         else:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="User couldn't be found")
-
-        db.add(create_account_model)
-        db.commit()
-
-        return {
-            'status': status.HTTP_201_CREATED,
-            'detail': 'Account Added Successfully'
-        }
 
     except OperationalError:
         network.network_exception()
@@ -137,20 +133,72 @@ async def get_accounts(db: Session = Depends(get_db), current_user:  dict = Depe
 @router.patch("/update")
 async def update_account_information(account: UpdateAccountInformation, db: Session = Depends(get_db), current_user:  dict = Depends(get_current_user)):
     try:
-        account_info = utils.get_account_information(
-            account.id, current_user, db)
-        print(account_info)
+        account_info = utils.get_account_information(account.id, current_user, db)
+        credit_account_info = utils.get_credit_account_information(
+            account_id=account_info.id,
+            current_user=current_user,
+            db=db
+        )
+        
         if account_info:
-            updated_account_info = account.model_dump(exclude_unset=True)
+            updated_account_info = account.model_dump(exclude_unset=True, exclude={"credit_account_information"})
             # Shouldn't update the id(since it is a PK) so popping it from request body after getting account information
             updated_account_info.pop('id', None)
             updated_account_info["updated_at"] = utils.getCurrentTimeStamp()
+                        
             for var, value in updated_account_info.items():
                 setattr(account_info, var, value)
+
+            if account.credit_account_information:
+                updated_credit_account_info = account.credit_account_information.model_dump(exclude_unset=True)
+                for var, value in updated_credit_account_info.items():
+                    setattr(credit_account_info, var, value)
+        
             db.commit()
+            
             return {
                 'status': status.HTTP_202_ACCEPTED,
                 'detail': "Account Updated Successfully"
+            }
+        else:
+            raise exception_accounts.not_found_exception()
+
+    except OperationalError:
+        network.network_exception()
+
+@router.delete("/delete", description="This operation will delete all the transactions associated with this account. Kindly use this with caution.")
+async def delete_account_information(account_id: uuid.UUID, db: Session = Depends(get_db), current_user:  dict = Depends(get_current_user)):
+    try:
+        account_info = utils.get_account_information(account_id, current_user, db)
+
+        if account_info:
+            transactions_info = utils.get_transactions_info_from_account_id_for_current_user(
+                account_id=account_id,
+                current_user=current_user,
+                db=db
+            )
+
+            credit_account_info = utils.get_credit_account_information(
+                account_id=account_id,
+                current_user=current_user,
+                db=db
+            )
+
+            # Deleting all the assoicated account info from other tables before deleting from the primary table
+
+            if credit_account_info:
+                db.delete(credit_account_info)
+
+            for transaction in transactions_info:
+                db.delete(transaction)
+            
+            db.delete(account_info)
+
+            db.commit()
+
+            return {
+                'status': status.HTTP_202_ACCEPTED,
+                'detail': "Account and associated Transactions Deleted Successfully"
             }
         else:
             raise exception_accounts.not_found_exception()

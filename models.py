@@ -32,7 +32,7 @@ class User(Base):
     phone_number = Column(String, unique=True, index=True)
     address_id = Column(UUID(as_uuid=True), ForeignKey('address.id'), default=None)
 
-    address = relationship('Address', back_populates='user_address')
+    user_address_fk = relationship('Address', back_populates='address_user_fk', foreign_keys="[Address.user_id]")
     transactions = relationship('Transactions', back_populates='user_transaction_fk')
     accounts = relationship('Accounts', back_populates='user_account_fk')
     credit_account_fk = relationship('CreditAccount',back_populates='user_credit_account_fk')
@@ -48,8 +48,9 @@ class Address(Base):
     state = Column(String)
     country = Column(String)
     postal_code = Column(String)
+    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'))
 
-    user_address = relationship('User', back_populates='address')
+    address_user_fk = relationship('User', back_populates='user_address_fk', foreign_keys="[Address.user_id]")
 
 
 class Transactions(Base):
