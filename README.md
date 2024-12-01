@@ -53,7 +53,7 @@ fastapi dev main.py
 
 ### 3. Configure settings
 
-Create a folder named `templates` in the project directory and and create a file named `settings.py`
+Create a folder named `templates` in the project directory and create a file named `settings.py`
 
 ```
 DATABASE_NAME = 'ExpenseTrackerDatabase'
@@ -64,4 +64,9 @@ PORT = 'PORT NO IF ANY'
 
 ALGORITHM = "CONFIGURE THE DESIRED ALGO" (DEFAULT THIS PROJECT USES IS HS256)
 SECRET_KEY = "ANY KEY HERE"
+
+# The below details are for securing your docs and redoc endpoint when your app is deployed
+
+USERNAME = "ANY USERNAME"
+PASSWORD + "ANY PASSWORD"
 ```
