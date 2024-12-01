@@ -61,4 +61,5 @@ def get_recurring_transactions_info(db: Session, account_id: uuid.UUID, transact
                                         models.RecurringTransaction.account_id == account_id and
                                         models.RecurringTransaction.id == transaction_id)\
                                 .first()
+    return recurring_transaction_info
                                 
