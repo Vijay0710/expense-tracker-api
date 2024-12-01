@@ -189,37 +189,32 @@ def register_user(user: UserModel, db: Session = Depends(get_db)):
                         .first()
         if user_data:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User already exists")
-        
-        create_user_model = models.User()
-        
-        create_user_model.id = uuid.uuid4()
-        create_user_model.email_id = user.email_id
-        create_user_model.hashed_password = get_hashed_password(user.password)
-        create_user_model.full_name = user.full_name
-        create_user_model.phone_number = user.phone_number
+        else:
+            create_user_model = models.User(
+                id = uuid.uuid4(),
+                **user.model_dump(exclude={"address", "password"}),
+                hashed_password = get_hashed_password(user.password)
+            )
 
-        if user.address != None:
-            create_user_model.address_id = uuid.uuid4()
-            create_address_model = models.Address()
-            create_address_model.id = create_user_model.address_id
-            create_address_model.address_1 = user.address.address_1
-            create_address_model.address_2 = user.address.address_2
-            create_address_model.city = user.address.city
-            create_address_model.state = user.address.state
-            create_address_model.country = user.address.country
-            create_address_model.postal_code = user.address.postal_code
-            db.add(create_address_model)
-        
-        db.add(create_user_model)
-        try:
+            db.add(create_user_model)
+
+            if user.address:
+                create_address_model = models.Address(
+                    id=uuid.uuid4(),
+                    **(user.address).__dict__,
+                    user_id = create_user_model.id
+                )
+                db.add(create_address_model)
+            
             db.commit()
-        except IntegrityError:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User already exists")
-        
+                
         return {
             "status" : status.HTTP_201_CREATED,
             "detail" : "User registered successfully"
         }
+        
+    except IntegrityError:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User already exists")
     
     except OperationalError:
         raise network.network_exception()

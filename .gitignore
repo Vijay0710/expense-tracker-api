@@ -1,5 +1,6 @@
 expense-tracker-env/
 __pycache__/
 .venv/
+venv/
 /templates
 alembic.ini
