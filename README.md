@@ -68,5 +68,5 @@ SECRET_KEY = "ANY KEY HERE"
 # The below details are for securing your docs and redoc endpoint when your app is deployed
 
 USERNAME = "ANY USERNAME"
-PASSWORD + "ANY PASSWORD"
+PASSWORD = "ANY PASSWORD"
 ```
