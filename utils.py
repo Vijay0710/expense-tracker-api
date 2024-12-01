@@ -45,3 +45,20 @@ def get_transactions_info_from_account_id_for_current_user(account_id: uuid.UUID
                 models.Transactions.id == get_user_id(current_user)
         )\
         .all()
+
+def get_transaction_info_from_current_user(db: Session, account_id: uuid.UUID, transaction_id: uuid.UUID, current_user: dict):
+    transaction_info = db.query(models.Transactions)\
+        .filter(models.Transactions.user_id == get_user_id(current_user) and 
+                models.Transactions.account_id == account_id and
+                models.Transactions.id == transaction_id
+        )\
+        .first()
+    return transaction_info
+
+def get_recurring_transactions_info(db: Session, account_id: uuid.UUID, transaction_id: uuid.UUID, current_user: dict):
+    recurring_transaction_info = db.query(models.RecurringTransaction)\
+                                .filter(models.RecurringTransaction.user_id == get_user_id(current_user) and
+                                        models.RecurringTransaction.account_id == account_id and
+                                        models.RecurringTransaction.id == transaction_id)\
+                                .first()
+                                

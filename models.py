@@ -2,7 +2,7 @@ import uuid
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from database import Base
-from sqlalchemy import Boolean, Column, Date, String, ForeignKey, BigInteger, DateTime, Enum, Double
+from sqlalchemy import Boolean, Column, Date, String, ForeignKey, BigInteger, DateTime, Enum, Double, Integer
 import utils
 from enum import Enum as pyEnum
 import sys
@@ -16,6 +16,11 @@ class AccountType(pyEnum):
     JOINT_ACCOUNT = "JOINT_ACCOUNT"
     CREDIT_ACCOUNT = "CREDIT_ACCOUNT"
 
+class TransactionCategory(pyEnum):
+    SIP = "SIP"
+    DEBIT_EMI_LOAN = "DEBIT_EMI_LOAN"
+    CREDIT_CARD_EMI = "CREDIT_CARD_EMI"
+    PERSONAL_LOAN = "PERSONAL_LOAN"
 
 class CurrencyType(pyEnum):
     INR = "INR"
@@ -36,6 +41,7 @@ class User(Base):
     transactions = relationship('Transactions', back_populates='user_transaction_fk')
     accounts = relationship('Accounts', back_populates='user_account_fk')
     credit_account_fk = relationship('CreditAccount',back_populates='user_credit_account_fk')
+    user_recurring_transaction_fk = relationship('RecurringTransaction', back_populates='recurring_transaction_user_fk')
 
 
 class Address(Base):
@@ -70,6 +76,7 @@ class Transactions(Base):
 
     user_transaction_fk = relationship('User', back_populates='transactions')
     transaction_account_fk = relationship('Accounts',back_populates='account_transaction_fk')
+    transaction_recurring_fk = relationship('RecurringTransaction', back_populates='recurring_transaction_fk')
 
 
 class Accounts(Base):
@@ -88,6 +95,7 @@ class Accounts(Base):
     account_transaction_fk = relationship('Transactions', back_populates='transaction_account_fk')
     user_account_fk = relationship('User', back_populates='accounts')
     credit_account_fk = relationship('CreditAccount', back_populates='account_credit_account_fk')
+    account_recurring_transaction_fk = relationship('RecurringTransaction', back_populates='recurring_transaction_account_fk')
     
 
 class CreditAccount(Base):
@@ -105,6 +113,24 @@ class CreditAccount(Base):
     user_credit_account_fk = relationship('User',back_populates='credit_account_fk')
 
 
-    
+class RecurringTransaction(Base):
+    __tablename__ = "recurring_transactions"
+
+    recurring_transaction_id = Column(UUID(as_uuid=True), ForeignKey('transactions.id'), primary_key=True, default=None)
+    recurring_amount = Column(Double, nullable=False)
+    recurring_transaction_category = Column(Enum(TransactionCategory), default=TransactionCategory.PERSONAL_LOAN)
+    frequency = Column(Integer, nullable=False)
+    start_date = Column(DateTime, default=None, nullable=False)
+    end_date = Column(DateTime, default=None, nullable=False)
+    frequency = Column(Integer, default=12)
+    description = Column(String, default=None, nullable=True)
+    created_at = Column(DateTime, default=utils.getCurrentTimeStamp())
+    updated_at = Column(DateTime, default=None, nullable=True)
+    user_id = Column(UUID(as_uuid=True),ForeignKey('users.id'),nullable=False)
+    account_id = Column(UUID(as_uuid=True), ForeignKey('accounts.id'), nullable=False)
+
+    recurring_transaction_fk = relationship('Transactions', back_populates='transaction_recurring_fk')
+    recurring_transaction_user_fk = relationship('User', back_populates='user_recurring_transaction_fk')
+    recurring_transaction_account_fk = relationship('Accounts', back_populates='account_recurring_transaction_fk')  
 
 

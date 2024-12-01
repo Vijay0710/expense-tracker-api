@@ -1,9 +1,10 @@
-from responses.Response import AccountInfoResponseModel
-from exceptions import network, accounts as exception_accounts
+from responses.JsonResponse import SuccessResponse
+from responses.ResponseModels import AccountInfoResponseModel
+from exceptions import network, accounts as exception_accounts, transactions
 from sqlalchemy.exc import OperationalError
 import datetime
 from routers.auth import decode_jwt_and_get_current_user
-from responses import Response
+from responses import ResponseModels
 from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends, HTTPException, status
 from database import SessionLocal, engine
@@ -56,7 +57,7 @@ class UpdateCreditAccountInformation(BaseModel):
 class UpdateAccountInformation(BaseModel):
     id: uuid.UUID
     bank_name: Optional[str] = None
-    account_number: Optional[str] = None
+    account_number: int = None
     account_balance: Optional[float] = None
     account_type: Optional[models.AccountType] = None
     credit_account_information: Optional[UpdateCreditAccountInformation] = None
@@ -96,10 +97,10 @@ async def create_account(account: AccountInformation, db: Session = Depends(get_
             
             db.add(create_account_model)
             db.commit()
-            return {
-                'status': status.HTTP_201_CREATED,
-                'detail': 'Account Added Successfully'
-            }
+            return SuccessResponse(
+                status_code = status.HTTP_201_CREATED,
+                message={'detail': 'Account Added Successfully'}
+            )
         else:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="User couldn't be found")
@@ -156,10 +157,10 @@ async def update_account_information(account: UpdateAccountInformation, db: Sess
         
             db.commit()
             
-            return {
-                'status': status.HTTP_202_ACCEPTED,
-                'detail': "Account Updated Successfully"
-            }
+            return SuccessResponse(
+                status_code= status.HTTP_202_ACCEPTED,
+                message={'detail': "Account Updated Successfully"}
+            )
         else:
             raise exception_accounts.not_found_exception()
 
@@ -190,16 +191,29 @@ async def delete_account_information(account_id: uuid.UUID, db: Session = Depend
                 db.delete(credit_account_info)
 
             for transaction in transactions_info:
+                if(transaction.is_recurring):
+                    recurring__transaction_info = utils.get_recurring_transactions_info(
+                        db=db,
+                        account_id=account_id,
+                        transaction_id=transaction.id,
+                        current_user=current_user
+                    )
+                    if recurring__transaction_info:
+                        db.delete(recurring__transaction_info)
+                    else:
+                        raise transactions.not_found_exception(
+                            message="Something went wrong! Please try deleting this account later!"
+                        )
                 db.delete(transaction)
             
             db.delete(account_info)
 
             db.commit()
 
-            return {
-                'status': status.HTTP_202_ACCEPTED,
-                'detail': "Account and associated Transactions Deleted Successfully"
-            }
+            return SuccessResponse(
+                status_code = status.HTTP_202_ACCEPTED,
+                message= {'detail': "Account and associated Transactions Deleted Successfully"}
+            )
         else:
             raise exception_accounts.not_found_exception()
 

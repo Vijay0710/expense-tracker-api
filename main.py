@@ -17,7 +17,7 @@ models.Base.metadata.create_all(bind=engine)
 
 # Configure the username and password for your docs and redoc endpoint when deployed
 VALID_USERNAME = settings.USERNAME
-VALID_PASSWORD = settings.PASSWORD
+VALID_PASSWORD = settings.API_PASSWORD
 
 # Dependency for Authentication
 def authenticate(credentials: HTTPBasicCredentials = Depends(security, use_cache=False)):
