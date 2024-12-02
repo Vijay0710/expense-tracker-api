@@ -1,7 +1,9 @@
 import sys
+
+import utils
 sys.path.append("../..")
 from datetime import datetime, timedelta, timezone
-from fastapi import Depends, HTTPException, status, APIRouter
+from fastapi import Depends, HTTPException, Request, status, APIRouter
 from pydantic import BaseModel
 from typing import Optional
 import models
@@ -9,12 +11,18 @@ from passlib.hash import bcrypt
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError, OperationalError
 from database import SessionLocal, engine
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestFormStrict, OAuth2
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestFormStrict, HTTPBasic
+from fastapi.security.base import SecurityBase
+from fastapi.security.utils import get_authorization_scheme_param
+from fastapi.openapi.models import SecurityScheme
+from fastapi.openapi.models import SecurityBase as SecurityBaseModel
+from fastapi.responses import JSONResponse
 from jose import ExpiredSignatureError, jwt, JWTError
 from exceptions import auth
 import uuid
 import templates.settings as settings
 from exceptions import network
+import base64
 
 router = APIRouter(
     prefix="/auth",
@@ -26,8 +34,33 @@ router = APIRouter(
     }
 )
 
+class BasicAuth(SecurityBase):
+    def __init__(self, scheme_name: str = None, auto_error: bool = True):
+        self.scheme_name = scheme_name or self.__class__.__name__
+        self.auto_error = auto_error
+
+        self.model = SecurityBaseModel(
+            type='http',
+            description='Basic Authorization to validate API from Known sources'
+        )
+
+    async def __call__(self, request: Request) -> Optional[str]:
+        authorization: str = request.headers.get("X-Auth-Basic")
+        scheme, param = get_authorization_scheme_param(authorization)
+        if not authorization or scheme.lower() != "basic":
+            if self.auto_error:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN, 
+                    detail="Not authenticated"
+                )
+            else:
+                return None
+        print(f"Param Name: {param}")
+        return param
+
 models.Base.metadata.create_all(bind=engine)
 oauth2_bearer = OAuth2PasswordBearer(tokenUrl="auth/token")
+basic_auth = BasicAuth(auto_error=False)
 
 class AddressModel(BaseModel):
     address_1: str
@@ -133,7 +166,7 @@ async def login_user_and_create_access_token(form_data: OAuth2PasswordRequestFor
 @router.post("/refresh_token")
 async def refresh_token(refresh_token: str):
     try:
-        user = decode_jwt_and_get_current_user(token=refresh_token)
+        user = get_current_user(token=refresh_token)
 
         if not user:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
@@ -156,16 +189,35 @@ async def refresh_token(refresh_token: str):
         raise network.network_exception()
 
 
-def decode_jwt_and_get_current_user(token: str = Depends(oauth2_bearer)):
+def get_current_user(basic_auth: BasicAuth = Depends(basic_auth),
+                    token: str = Depends(oauth2_bearer)):
+    if not basic_auth:
+        raise HTTPException(
+            headers={"WWW-X-Auth-Basic": "Basic"}, 
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail='Kindly provide valid authentication method'
+        )
     try:
+        decoded = base64.b64decode(basic_auth).decode("ascii")
+        api_username, _, api_password = decoded.partition(":")
+
+        print(f"API Username: {api_username} Password: {api_password}")
+        
+        utils.authenticate_username_and_password(api_username, api_password)
+
+        print(f"token is {token}")
+
         payload = jwt.decode(token, key=settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+
         username = payload.get("username")
         user_id = payload.get("uuid")
+            
         if username is not None and user_id is not None:
             return {
                 "username" : username,
                 "user_id" : user_id
             }
+        
         raise auth.current_user_exception()
     
     except ExpiredSignatureError:

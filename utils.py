@@ -1,8 +1,11 @@
 import datetime
+import secrets
 import uuid
 import models
 from sqlalchemy.orm import Session
 from pytz import timezone
+from fastapi import HTTPException, status
+from templates import settings
 
 
 
@@ -62,4 +65,14 @@ def get_recurring_transactions_info(db: Session, account_id: uuid.UUID, transact
                                         models.RecurringTransaction.id == transaction_id)\
                                 .first()
     return recurring_transaction_info
-                                
+
+
+def authenticate_username_and_password(username: str, password: str):
+    correct_username = secrets.compare_digest(username, settings.USERNAME)
+    correct_password = secrets.compare_digest(password, settings.API_PASSWORD)
+
+    if not (correct_username and correct_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="X-Auth-Basic header is missing or invalid credentials"
+        )
