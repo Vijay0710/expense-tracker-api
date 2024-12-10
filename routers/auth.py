@@ -5,7 +5,7 @@ sys.path.append("../..")
 from datetime import datetime, timedelta, timezone
 from fastapi import Depends, HTTPException, Request, status, APIRouter
 from pydantic import BaseModel
-from typing import Optional
+from typing import Any, Optional
 import models
 from passlib.hash import bcrypt
 from sqlalchemy.orm import Session
@@ -33,6 +33,9 @@ router = APIRouter(
         }
     }
 )
+
+class RefreshToken(BaseModel):
+    refresh_token: str
 
 class BasicAuth(SecurityBase):
     def __init__(self, scheme_name: str = None, auto_error: bool = True):
@@ -111,14 +114,14 @@ def verify_user(username: str, password: str, db: Session = Depends(get_db)):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="The username or password is incorrect")
         
         if not verify_password(password, user.hashed_password):
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="The username or password is incorrect")
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="The username or password is incorrect")
         
         return user
     
     except OperationalError:
         raise network.network_exception()
 
-def create_token(username: str, user_id: uuid, expires_delta: Optional[timedelta] = None):
+def create_token(username: str, user_id: uuid, expires_delta: Optional[timedelta] = None, additional_claims: dict[str, Any] = {}):
     encode = {
         "username" : username,
         "uuid" : str(user_id)
@@ -130,12 +133,20 @@ def create_token(username: str, user_id: uuid, expires_delta: Optional[timedelta
         expires = datetime.now(timezone.utc) + timedelta(minutes=15)
     
     encode.update({ "exp" : expires })
+    encode.update(additional_claims)
 
     return jwt.encode(encode, key=settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 # Token endpoint to get encypted information of the user
 @router.post("/token")
-async def login_user_and_create_access_token(form_data: OAuth2PasswordRequestFormStrict = Depends(), db: Session = Depends(get_db)):
+async def login_user_and_create_access_token(form_data: OAuth2PasswordRequestFormStrict = Depends(), db: Session = Depends(get_db), basic_auth: BasicAuth = Depends(basic_auth)):
+    if not basic_auth:
+        raise HTTPException(
+            headers={"WWW-X-Auth-Basic": "Basic"}, 
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail='Kindly provide valid authentication method'
+        )
+    
     try:
         user = verify_user(form_data.username, form_data.password, db=db)
 
@@ -145,44 +156,60 @@ async def login_user_and_create_access_token(form_data: OAuth2PasswordRequestFor
         token  = create_token(
             username=form_data.username, 
             user_id=user.id, 
-            expires_delta=timedelta(minutes=15)
+            expires_delta=timedelta(minutes=15),
+            additional_claims = {
+                "token_type" : "Bearer"
+            }
         )
 
         refresh_token = create_token(
             username=form_data.username,
             user_id=user.id,
-            expires_delta=timedelta(days=7)
+            expires_delta=timedelta(days=7),
+            additional_claims = {
+                "token_type" : "Refresh"
+            }
         )
 
         return {
             "access_token" : token,
             "refresh_token": refresh_token,
-            "token_type" : "Bearer"
+            "user_id": user.id
         }
     
     except OperationalError:
         raise network.network_exception()
 
 @router.post("/refresh_token")
-async def refresh_token(refresh_token: str):
+async def refresh_token(refresh_token: RefreshToken):
     try:
-        user = get_current_user(token=refresh_token)
-
-        if not user:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
+        payload = jwt.decode(refresh_token.refresh_token, key=settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        
+        if payload.get("token_type") != "Refresh":
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+        
+        username = payload.get("username")
+        user_id = payload.get("uuid")
+        
+        if not username or not user_id:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
         
         access_token  = create_token(
-            username=user["username"], 
-            user_id=user["user_id"], 
-            expires_delta=timedelta(minutes=15)
+            username=username, 
+            user_id=user_id, 
+            expires_delta=timedelta(minutes=15),
+            additional_claims = {
+                "token_type" : "Bearer"
+            }
         )
 
         return {
             "access_token" : access_token,
-            "token_type" : "Bearer"
+            "user_id" : user_id
         }
     
-    except Exception:
+    except Exception as e:
+        print(e)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Something went wrong at server end.")
     
     except OperationalError:
