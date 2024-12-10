@@ -58,11 +58,11 @@ Create a folder named `templates` in the project directory and create a file nam
 ```
 DATABASE_NAME = 'ExpenseTrackerDatabase'
 PASSWORD = 'TEST' (USE THE PASSWORD TO YOUR DATABASE)
-DOMAIN_NAME = 'localhost' (USE THE DOMAIN NAME IF UR DATABASE IS HOSTED)
+DOMAIN_NAME = 'localhost'
 DATABASE_URL = 'postgresql://postgres'
 PORT = 'PORT NO IF ANY'
 
-ALGORITHM = "CONFIGURE THE DESIRED ALGO" (DEFAULT THIS PROJECT USES IS HS256)
+ALGORITHM = "CONFIGURE THE DESIRED ALGO"
 SECRET_KEY = "ANY KEY HERE"
 
 # The below details are for securing your docs and redoc endpoint when your app is deployed
