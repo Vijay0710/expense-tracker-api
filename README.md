@@ -7,7 +7,7 @@ This is a RESTful API for an Expense Tracker application, built using [FastAPI](
 Before getting started, ensure that you have the following tools installed on your machine:
 
 - **Python 3.12.5**
-- **PostgreSQL** (Ensure pgAdmin4 is installed to manage the database)
+- **PostgreSQL** (Ensure pgAdmin4 is installed to manage the database, Currently the deployed server uses postgresql 15)
 - **pip** (Python package installer)
 
 ## Getting Started
