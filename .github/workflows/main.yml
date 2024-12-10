@@ -21,4 +21,4 @@ jobs:
           script: |
             cd /mnt/sda1/expense-tracker-api
             git pull
-            sudo systemctl restart expense-tracker-api
+            sudo systemctl restart expense-tracker.service
