@@ -104,7 +104,7 @@ class CreditAccount(Base):
     credit_account_id = Column(UUID(as_uuid=True), ForeignKey('accounts.id'),primary_key= True, default=None)
     credit_card_limit = Column(String, nullable=False)
     credit_card_due_date = Column(Date, nullable=False)
-    credit_card_outstanding = Column(BigInteger, nullable=False, default=0)
+    credit_card_outstanding = Column(Double, nullable=False, default=0)
     billing_cycle = Column(String, nullable=False)
     total_reward_points = Column(String, nullable=False)
     user_id = Column(UUID(as_uuid=True),ForeignKey('users.id'),nullable=False)

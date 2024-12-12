@@ -33,7 +33,7 @@ router = APIRouter(
 class CreditAccountInformation(BaseModel):
     credit_card_limit: int
     credit_card_due_date: datetime.date
-    credit_card_outstanding: str
+    credit_card_outstanding: float
     billing_cycle: str
     total_reward_points: str
 
@@ -50,7 +50,7 @@ class AccountInformation(BaseModel):
 class UpdateCreditAccountInformation(BaseModel):
     credit_card_limit: Optional[str] = None
     credit_card_due_date: Optional[datetime.date] = None
-    credit_card_outstanding: Optional[str] = None
+    credit_card_outstanding: Optional[float] = None
     billing_cycle: Optional[datetime.date] = None
     total_reward_points: Optional[str] = None
 
