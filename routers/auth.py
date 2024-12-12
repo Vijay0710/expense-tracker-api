@@ -37,9 +37,6 @@ router = APIRouter(
 class RefreshToken(BaseModel):
     refresh_token: str
 
-class AccessToken(BaseModel):
-    access_token: str
-
 class BasicAuth(SecurityBase):
     def __init__(self, scheme_name: str = None, auto_error: bool = True):
         self.scheme_name = scheme_name or self.__class__.__name__
@@ -263,9 +260,15 @@ def get_current_user(basic_auth: BasicAuth = Depends(basic_auth),
 
 
 @router.post("/verify_token")
-def verify_token(access_token: AccessToken, basic_auth: BasicAuth = Depends(basic_auth)):
+def verify_token(refreshTokenModel: RefreshToken, basic_auth: BasicAuth = Depends(basic_auth)):
+    if not basic_auth:
+        raise HTTPException(
+            headers={"WWW-X-Auth-Basic": "Basic"}, 
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail='Kindly provide valid authentication method'
+        )
     try:
-        payload = jwt.decode(access_token.access_token, key=settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        payload = jwt.decode(refreshTokenModel.refresh_token, key=settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
 
         username = payload.get("username")
         user_id = payload.get("uuid")
@@ -277,6 +280,12 @@ def verify_token(access_token: AccessToken, basic_auth: BasicAuth = Depends(basi
             }
         
         raise auth.current_user_exception()
+    
+    except ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, 
+            detail="Oops your Authorization is Expired. Please try logging in again"
+        )
     
     except Exception:
         raise HTTPException(
