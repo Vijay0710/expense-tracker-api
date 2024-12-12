@@ -30,15 +30,15 @@ def get_accounts_information(current_user: dict, db: Session):
     return accounts_info
 
 
-def get_account_information(account_id: uuid.UUID, current_user: dict, db: Session):
+def get_account_information(account_id: uuid.UUID, db: Session):
     accounts_info = db.query(models.Accounts)\
-        .filter((models.Accounts.user_id == get_user_id(current_user)) and (models.Accounts.id == account_id))\
+        .filter(models.Accounts.id == account_id)\
         .first()
     return accounts_info
 
-def get_credit_account_information(account_id: uuid.UUID, current_user: dict, db: Session):
+def get_credit_account_information(account_id: uuid.UUID, db: Session):
     credit_account_info = db.query(models.CreditAccount)\
-        .filter((models.CreditAccount.user_id == get_user_id(current_user)) and (models.CreditAccount.id == account_id))\
+        .filter(models.CreditAccount.credit_account_id == account_id)\
         .first()
     return credit_account_info
 
@@ -62,7 +62,7 @@ def get_recurring_transactions_info(db: Session, account_id: uuid.UUID, transact
     recurring_transaction_info = db.query(models.RecurringTransaction)\
                                 .filter(models.RecurringTransaction.user_id == get_user_id(current_user) and
                                         models.RecurringTransaction.account_id == account_id and
-                                        models.RecurringTransaction.id == transaction_id)\
+                                        models.RecurringTransaction.recurring_transaction_id == transaction_id)\
                                 .first()
     return recurring_transaction_info
 

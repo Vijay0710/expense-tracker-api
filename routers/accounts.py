@@ -140,10 +140,9 @@ async def get_accounts(accountTypeModel: Optional[AccountType] = None, db: Sessi
 @router.patch("/update")
 async def update_account_information(account: UpdateAccountInformation, db: Session = Depends(get_db), current_user:  dict = Depends(get_current_user)):
     try:
-        account_info = utils.get_account_information(account.id, current_user, db)
+        account_info = utils.get_account_information(account.id, db)
         credit_account_info = utils.get_credit_account_information(
             account_id=account_info.id,
-            current_user=current_user,
             db=db
         )
         
@@ -176,7 +175,7 @@ async def update_account_information(account: UpdateAccountInformation, db: Sess
 @router.delete("/delete", description="This operation will delete all the transactions associated with this account. Kindly use this with caution.")
 async def delete_account_information(account_id: uuid.UUID, db: Session = Depends(get_db), current_user:  dict = Depends(get_current_user)):
     try:
-        account_info = utils.get_account_information(account_id, current_user, db)
+        account_info = utils.get_account_information(account_id, db)
 
         if account_info:
             transactions_info = utils.get_transactions_info_from_account_id_for_current_user(
@@ -187,7 +186,6 @@ async def delete_account_information(account_id: uuid.UUID, db: Session = Depend
 
             credit_account_info = utils.get_credit_account_information(
                 account_id=account_id,
-                current_user=current_user,
                 db=db
             )
 
