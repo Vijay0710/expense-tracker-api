@@ -63,6 +63,9 @@ class UpdateAccountInformation(BaseModel):
     credit_account_information: Optional[UpdateCreditAccountInformation] = None
     currency: Optional[models.CurrencyType] = None
 
+class AccountType(BaseModel):
+    account_type: models.AccountType
+
 def get_db():
     try:
         db = SessionLocal()
@@ -110,7 +113,7 @@ async def create_account(account: AccountInformation, db: Session = Depends(get_
 
 
 @router.post("/info", response_model=list[AccountInfoResponseModel])
-async def get_accounts(db: Session = Depends(get_db), current_user:  dict = Depends(get_current_user)):
+async def get_accounts(accountTypeModel: Optional[AccountType] = None, db: Session = Depends(get_db), current_user:  dict = Depends(get_current_user)):
     try:
         userId = current_user.get("user_id")
 
@@ -121,8 +124,11 @@ async def get_accounts(db: Session = Depends(get_db), current_user:  dict = Depe
         if user_data:
             accounts = db.query(models.Accounts)\
                 .filter(models.Accounts.user_id == userId)\
-                .all()
-            return accounts
+            
+            if accountTypeModel:
+                accounts = accounts.filter(models.Accounts.account_type == accountTypeModel.account_type)
+            
+            return accounts.all()
 
         else:
             raise exception_accounts.not_found_exception()
