@@ -37,6 +37,9 @@ router = APIRouter(
 class RefreshToken(BaseModel):
     refresh_token: str
 
+class AccessToken(BaseModel):
+    access_token: str
+
 class BasicAuth(SecurityBase):
     def __init__(self, scheme_name: str = None, auto_error: bool = True):
         self.scheme_name = scheme_name or self.__class__.__name__
@@ -258,6 +261,28 @@ def get_current_user(basic_auth: BasicAuth = Depends(basic_auth),
     except JWTError:
         raise auth.current_user_exception()
 
+
+@router.post("/verify_token")
+def verify_token(access_token: AccessToken, basic_auth: BasicAuth = Depends(basic_auth)):
+    try:
+        payload = jwt.decode(access_token.access_token, key=settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+
+        username = payload.get("username")
+        user_id = payload.get("uuid")
+            
+        if username is not None and user_id is not None:
+            return {
+                "username" : username,
+                "user_id" : user_id
+            }
+        
+        raise auth.current_user_exception()
+    
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+            detail="Something went wrong when validating your credentials. Please try logging in again"
+        )
 
 # User can register with or without address data
 @router.post("/register")
