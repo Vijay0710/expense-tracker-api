@@ -36,3 +36,11 @@ class AccountInfoResponseModel(BaseModel):
     currency: CurrencyType
     created_at: datetime.datetime
     updated_at: Optional[datetime.datetime] = None
+
+class CreditAccountResponseModel(BaseModel):
+    id: uuid.UUID
+    bank_name: str
+    credit_card_limit: str
+    credit_card_due_date: datetime.date
+    billing_cycle: str
+    credit_card_outstanding: float

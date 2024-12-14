@@ -1,5 +1,5 @@
 from responses.JsonResponse import SuccessResponse
-from responses.ResponseModels import AccountInfoResponseModel
+from responses.ResponseModels import AccountInfoResponseModel, CreditAccountResponseModel
 from exceptions import network, accounts as exception_accounts, transactions
 from sqlalchemy.exc import OperationalError
 import datetime
@@ -136,6 +136,38 @@ async def get_accounts(accountTypeModel: Optional[AccountType] = None, db: Sessi
     except OperationalError:
         network.network_exception()
 
+@router.post("/credit_account_info", response_model=list[CreditAccountResponseModel])
+async def get_credit_accounts(db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    try:
+        if current_user:
+            credit_accounts = db.query(
+                                    models.Accounts.id, 
+                                    models.Accounts.bank_name, 
+                                    models.CreditAccount.credit_card_limit, 
+                                    models.CreditAccount.billing_cycle, 
+                                    models.CreditAccount.credit_card_due_date,
+                                    models.CreditAccount.credit_card_outstanding
+                                )\
+                                .join(models.CreditAccount, models.Accounts.id == models.CreditAccount.credit_account_id)\
+                                .filter(models.Accounts.user_id == utils.get_user_id(current_user))\
+                                .all()
+            
+            if credit_accounts.count == 0:
+                return SuccessResponse(
+                    status_code=status.HTTP_204_NO_CONTENT,
+                    message={
+                        "detail": "No Record Found"
+                    }
+                )
+            
+            return credit_accounts
+    
+    except Exception as e:
+        print(e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Something went wrong with your request"
+        )
 
 @router.patch("/update")
 async def update_account_information(account: UpdateAccountInformation, db: Session = Depends(get_db), current_user:  dict = Depends(get_current_user)):
