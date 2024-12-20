@@ -85,7 +85,7 @@ class Accounts(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4())
     account_type = Column(Enum(AccountType), nullable=False)
     bank_name = Column(String, nullable=False)
-    account_number = Column(BigInteger, nullable=False)
+    account_number = Column(String, nullable=False)
     account_balance = Column(Double, default=0)
     currency = Column(Enum(CurrencyType), default=CurrencyType.INR)
     created_at = Column(DateTime, default=utils.getCurrentTimeStamp())
