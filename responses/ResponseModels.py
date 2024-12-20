@@ -31,7 +31,7 @@ class AccountInfoResponseModel(BaseModel):
     id: uuid.UUID
     account_type: AccountType
     bank_name: str
-    account_number: int
+    account_number: str
     account_balance: float
     currency: CurrencyType
     created_at: datetime.datetime
@@ -44,3 +44,4 @@ class CreditAccountResponseModel(BaseModel):
     credit_card_due_date: datetime.date
     billing_cycle: str
     credit_card_outstanding: float
+    account_number: str

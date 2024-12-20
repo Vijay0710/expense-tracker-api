@@ -41,7 +41,7 @@ class CreditAccountInformation(BaseModel):
 class AccountInformation(BaseModel):
     account_type: models.AccountType
     bank_name: str
-    account_number: int
+    account_number: str
     account_balance: float
     currency: models.CurrencyType
     credit_account_information: Optional[CreditAccountInformation] = None
@@ -57,7 +57,7 @@ class UpdateCreditAccountInformation(BaseModel):
 class UpdateAccountInformation(BaseModel):
     id: uuid.UUID
     bank_name: Optional[str] = None
-    account_number: int = None
+    account_number: str = None
     account_balance: Optional[float] = None
     account_type: Optional[models.AccountType] = None
     credit_account_information: Optional[UpdateCreditAccountInformation] = None
@@ -146,7 +146,8 @@ async def get_credit_accounts(db: Session = Depends(get_db), current_user: dict 
                                     models.CreditAccount.credit_card_limit, 
                                     models.CreditAccount.billing_cycle, 
                                     models.CreditAccount.credit_card_due_date,
-                                    models.CreditAccount.credit_card_outstanding
+                                    models.CreditAccount.credit_card_outstanding,
+                                    models.Accounts.account_number
                                 )\
                                 .join(models.CreditAccount, models.Accounts.id == models.CreditAccount.credit_account_id)\
                                 .filter(models.Accounts.user_id == utils.get_user_id(current_user))\
