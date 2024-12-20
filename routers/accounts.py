@@ -36,6 +36,7 @@ class CreditAccountInformation(BaseModel):
     credit_card_outstanding: float
     billing_cycle: str
     total_reward_points: str
+    card_type: str
 
 
 class AccountInformation(BaseModel):
@@ -53,6 +54,7 @@ class UpdateCreditAccountInformation(BaseModel):
     credit_card_outstanding: Optional[float] = None
     billing_cycle: Optional[datetime.date] = None
     total_reward_points: Optional[str] = None
+    card_type: Optional[str] = None
 
 class UpdateAccountInformation(BaseModel):
     id: uuid.UUID
@@ -147,7 +149,8 @@ async def get_credit_accounts(db: Session = Depends(get_db), current_user: dict 
                                     models.CreditAccount.billing_cycle, 
                                     models.CreditAccount.credit_card_due_date,
                                     models.CreditAccount.credit_card_outstanding,
-                                    models.Accounts.account_number
+                                    models.Accounts.account_number,
+                                    models.CreditAccount.card_type
                                 )\
                                 .join(models.CreditAccount, models.Accounts.id == models.CreditAccount.credit_account_id)\
                                 .filter(models.Accounts.user_id == utils.get_user_id(current_user))\

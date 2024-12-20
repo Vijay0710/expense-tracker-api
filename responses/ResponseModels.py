@@ -45,3 +45,4 @@ class CreditAccountResponseModel(BaseModel):
     billing_cycle: str
     credit_card_outstanding: float
     account_number: str
+    card_type: str

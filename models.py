@@ -107,6 +107,7 @@ class CreditAccount(Base):
     credit_card_outstanding = Column(Double, nullable=False, default=0)
     billing_cycle = Column(String, nullable=False)
     total_reward_points = Column(String, nullable=False)
+    card_type = Column(String, nullable=False)
     user_id = Column(UUID(as_uuid=True),ForeignKey('users.id'),nullable=False)
     
     account_credit_account_fk = relationship('Accounts', back_populates='credit_account_fk')

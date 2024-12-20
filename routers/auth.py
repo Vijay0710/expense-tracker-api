@@ -58,7 +58,6 @@ class BasicAuth(SecurityBase):
                 )
             else:
                 return None
-        print(f"Param Name: {param}")
         return param
 
 models.Base.metadata.create_all(bind=engine)
@@ -209,7 +208,6 @@ async def refresh_token(refresh_token: RefreshToken):
         }
     
     except Exception as e:
-        print(e)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Something went wrong at server end.")
     
     except OperationalError:
@@ -227,12 +225,8 @@ def get_current_user(basic_auth: BasicAuth = Depends(basic_auth),
     try:
         decoded = base64.b64decode(basic_auth).decode("ascii")
         api_username, _, api_password = decoded.partition(":")
-
-        print(f"API Username: {api_username} Password: {api_password}")
         
         utils.authenticate_username_and_password(api_username, api_password)
-
-        print(f"token is {token}")
 
         payload = jwt.decode(token, key=settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
 
