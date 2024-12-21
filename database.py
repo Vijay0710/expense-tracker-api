@@ -6,7 +6,10 @@ from templates import settings
 SQLALCHEMY_DATABASE_URL = f"{settings.DATABASE_URL}:{settings.PASSWORD}@{settings.DOMAIN_NAME}:{settings.PORT}/{settings.DATABASE_NAME}"
 
 engine = create_engine(
-    SQLALCHEMY_DATABASE_URL
+    SQLALCHEMY_DATABASE_URL,
+    pool_timeout=30,
+    pool_recycle=1800,
+    pool_pre_ping=True
 )
 
 SessionLocal = sessionmaker(
