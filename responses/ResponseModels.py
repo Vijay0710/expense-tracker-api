@@ -46,3 +46,4 @@ class CreditAccountResponseModel(BaseModel):
     credit_card_outstanding: float
     account_number: str
     card_type: str
+    total_reward_points: str

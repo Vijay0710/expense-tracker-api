@@ -150,7 +150,8 @@ async def get_credit_accounts(db: Session = Depends(get_db), current_user: dict 
                                     models.CreditAccount.credit_card_due_date,
                                     models.CreditAccount.credit_card_outstanding,
                                     models.Accounts.account_number,
-                                    models.CreditAccount.card_type
+                                    models.CreditAccount.card_type,
+                                    models.CreditAccount.total_reward_points
                                 )\
                                 .join(models.CreditAccount, models.Accounts.id == models.CreditAccount.credit_account_id)\
                                 .filter(models.Accounts.user_id == utils.get_user_id(current_user))\
